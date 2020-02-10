@@ -1,0 +1,398 @@
+<style>
+html, body {
+  width:  100%;
+  height: 100%;
+  margin: 0;
+}
+.stop-scrolling { 
+    height: 100%; 
+    overflow: hidden; 
+} 
+</style>
+<div id = "screen" class="stop-scrolling">
+<canvas id="canvas" width= 0 height=0></canvas>
+<div id = "input" style="position: absolute">
+<form action="javascript:setUsername();">
+<input id="textInput" placeholder="Username" style="width: 333.12px; height: 43px; line-height: 38.7px; font-size: 38.7px; padding-left: 5px; padding-right: 5px;">
+<input type="submit" style="display: none" />
+</form>
+</div>
+</div>
+<script>
+var socket = new WebSocket("ws://72.74.131.139:8181");
+var connectionActive = false;
+// Connection opened
+socket.onopen = function(data){
+    connectionActive=true;
+}
+
+// Listen for messages
+socket.onmessage = function(event){
+var jsonObject = JSON.parse(event.data);
+var type = jsonObject.type;
+var data = jsonObject.data;
+if(type=="setPosition"){
+    Player.posX = data.posX;
+    Player.posY = data.posY;
+   }
+else if(type=="setPlayer"){
+    Player = data;
+    playerActive = true;
+}
+}
+window.addEventListener('keyup', function(event) { Key.onKeyup(event); }, false);
+window.addEventListener('keydown', function(event) { Key.onKeydown(event); }, false);
+window.addEventListener("mousedown",function(event){mouseDown = true;});
+window.addEventListener("mouseup",function(event){mouseDown = false;});
+canvas.addEventListener("mousemove",function(event){setMousePos(event.clientX,event.clientY)});
+var Key = {
+  _pressed: {},
+
+  LEFT: 65,
+  UP: 87,
+  RIGHT: 68,
+  DOWN: 83,
+  SPACE: 32,
+  isDown: function(keyCode) {
+    return this._pressed[keyCode];
+  },
+  
+  onKeydown: function(event) {
+    this._pressed[event.keyCode] = true;
+  },
+  
+  onKeyup: function(event) {
+    delete this._pressed[event.keyCode];
+  }
+};
+var delay = 7;
+var reportDelay = 35;
+var SpawnedObjects = [new SpawnedObject(200,200,[new Point(0,0),new Point(100,0),new Point(50,100),new Point(0,0)],"red","blue"),new SpawnedObject(100,0,[new Point(0,0),new Point(100,0),new Point(100,100),new Point(0,100),new Point(0,0)],"blue","red")];    
+var draw = canvas.getContext("2d");
+var centerX = 0;
+var centerY = 0;
+var playerActive = false;
+var mouseDown = false;
+var mouseX = 0;
+var mouseY = 0;
+var deltaTime = 0;
+function setMousePos(x,y){
+    mouseX = x-centerX;
+    mouseY = y-centerY;
+}
+var Player = {
+    username: "",
+    score: 0,
+    speed: 0,
+    posX: 0,
+    posY: 0,
+    rayX: 0,
+    rayY: 0,
+    rayActive: false
+};
+var realSpeed;
+function drawPlayer(){
+draw.beginPath();
+draw.arc(centerX, centerY, 50, 0, 2 * Math.PI);
+draw.strokeStyle = "#00cc00";
+draw.lineWidth = 10;
+draw.stroke();
+draw.fillStyle = "lime";
+draw.fill();    
+}
+var WeaponManager= {
+    activeWeapon: 0,
+    tick: function(){
+        switch(this.activeWeapon){
+            case 0:
+            rayTick();
+            break;
+               }
+    }
+};
+function rayTick(){
+    Player.rayActive=mouseDown;
+    if(Player.rayActive){
+        Player.rayX = mouseX+Player.posX;
+        Player.rayY = mouseY+Player.posY;
+       }
+}
+function rayCast(rayX1,rayY1,rayX2,rayY2){
+                var intersections = [];
+            for(var i = 0;i<SpawnedObjects.length;i++){
+var intersectionPoint = SpawnedObjects[i].intersect(rayX1,rayY1,rayX2,rayY2);
+if(intersectionPoint!=false){
+   intersections.push(intersectionPoint);
+   }
+            }
+            var lowestDist = Math.sqrt(Math.pow(rayX2-rayX1,2)+Math.pow(rayY2-rayY1,2));
+            var closestPoint = false;
+        for(var i = 0;i<intersections.length;i++){
+            var dist = Math.sqrt(Math.pow(intersections[i].x-Player.posX,2)+Math.pow(intersections[i].y-Player.posY,2));
+            if(dist<lowestDist){
+              lowestDist = dist;
+                closestPoint = intersections[i];
+               }
+        }
+    return closestPoint;
+}
+function drawRay(radius){
+    
+        if(Player.rayActive){
+    var closestPoint = rayCast(Player.posX,Player.posY,Player.posX+mouseX,Player.posY+mouseY);
+    if(closestPoint==false){
+       closestPoint={x:Player.posX+mouseX,y:Player.posY+mouseY};
+       }
+                    var ciradius = Math.sin(window.performance.now()/50);
+        draw.beginPath();
+draw.arc(closestPoint.x+centerX-Player.posX, closestPoint.y+centerY-Player.posY, 45+ciradius*5, 0, 2 * Math.PI);
+draw.fillStyle = "red";
+draw.fill(); 
+       draw.strokeStyle="cyan";
+        draw.fillStyle="cyan";
+        draw.lineWidth=radius;
+        draw.beginPath();
+        draw.moveTo(centerX,centerY);
+        draw.lineTo(closestPoint.x+centerX-Player.posX,closestPoint.y+centerY-Player.posY);
+        draw.stroke();
+        draw.beginPath();
+        draw.arc(closestPoint.x+centerX-Player.posX, closestPoint.y+centerY-Player.posY, radius/2, 0, 2 * Math.PI);
+        draw.fill();
+        draw.strokeStyle="white";
+        draw.fillStyle="white";
+        draw.lineWidth=radius/3;
+        draw.beginPath();
+        draw.moveTo(centerX,centerY);
+        draw.lineTo(closestPoint.x+centerX-Player.posX,closestPoint.y+centerY-Player.posY);
+        draw.stroke();
+        draw.beginPath();
+        draw.arc(closestPoint.x+centerX-Player.posX, closestPoint.y+centerY-Player.posY, radius/6, 0, 2 * Math.PI);
+        draw.fill();
+        
+       
+}
+    }
+    function Point(x,y){
+    this.x=x;
+    this.y=y;
+}
+function SpawnedObject(posX,posY,points,color,outlineColor){
+    this.posX = posX;
+    this.posY = posY;
+    this.points = points;
+    this.walls = [];
+    for(var i = 1;i<this.points.length;i++){
+        this.walls.push(new Wall(this.points[i-1].x,this.points[i-1].y,this.points[i].x,this.points[i].y));
+    }
+
+    this.color = color;
+    this.outlineColor = outlineColor;
+    this.draw = function(){
+        var canvasPosX = this.posX-Player.posX+centerX;
+        var canvasPosY = this.posY-Player.posY+centerY;
+        draw.beginPath();
+        draw.moveTo(canvasPosX,canvasPosY)
+        for(var i = 1;i<points.length;i++){
+        draw.lineTo(this.points[i-1].x+canvasPosX,this.points[i-1].y+canvasPosY,this.points[i].x+canvasPosX,this.points[i].y+canvasPosY);
+    }
+        draw.closePath();
+        draw.strokeStyle = outlineColor;
+        draw.fillStyle = color;
+        draw.stroke();
+        draw.fill();
+    }
+    this.intersect = function(rayX1,rayY1,rayX2,rayY2){
+        var intersections = [];
+        for(var i = 0;i<this.walls.length;i++){
+            var check = intersect(rayX1,rayY1,rayX2,rayY2,this.walls[i].p1X+this.posX,this.walls[i].p1Y+this.posY,this.walls[i].p2X+this.posX,this.walls[i].p2Y+this.posY);
+            if(check!=false){
+               intersections.push(check);
+               }
+        }
+        if(intersections.length>0){
+           var lowestDist=Math.sqrt(Math.pow(rayX2-rayX1,2)+Math.pow(rayY2-rayY1,2));
+           var closestPoint = {rayX2,rayY2}
+           for(var i = 0;i<intersections.length;i++){
+               var dist = Math.sqrt(Math.pow(intersections[i].x-Player.posX,2)+Math.pow(intersections[i].y-Player.posY,2))
+               if(dist<lowestDist){
+                  lowestDist=dist;
+                   closestPoint=intersections[i];
+                  }
+           }
+            return closestPoint;
+           }
+        else{
+            return false;
+        }
+    }
+}
+function Wall(p1X,p1Y,p2X,p2Y){
+    this.p1X=p1X;
+    this.p1Y=p1Y;
+    this.p2X=p2X;
+    this.p2Y=p2Y;
+}
+function intersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+
+  // Check if none of the lines are of length 0
+	if ((x1 === x2 && y1 === y2) || (x3 === x4 && y3 === y4)) {
+		return false
+	}
+
+	denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+
+  // Lines are parallel
+	if (denominator === 0) {
+		return false
+	}
+
+	let ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator
+	let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator
+
+  // is the intersection along the segments
+	if (ua < 0 || ua > 1 || ub < 0 || ub > 1) {
+		return false
+	}
+
+  // Return a object with the x and y coordinates of the intersection
+	let x = x1 + ua * (x2 - x1)
+	let y = y1 + ua * (y2 - y1)
+
+	return {x, y}
+}
+function drawGrid(cellWidth,cellHeight){
+    var cellsX = window.innerWidth/cellWidth;
+    var cellsY = window.innerHeight/cellHeight;
+    draw.strokeStyle = "#9b9797";
+    for(var x = 0;x<cellsX;x++){
+        var XPos = x*cellWidth-Player.posX%cellWidth;
+        draw.beginPath();
+        draw.moveTo(XPos,0);
+        draw.lineTo(XPos,window.innerHeight);
+        draw.stroke();
+    }
+    for(var y = 0;y<cellsY;y++){
+        var YPos = y*cellWidth-Player.posY%cellHeight;
+        draw.beginPath();
+        draw.moveTo(0,YPos);
+        draw.lineTo(window.innerWidth,YPos);
+        draw.stroke();
+    }
+    
+}
+update();
+reportTick();
+function Enemy(username,score,speed,realSpeed,posX,posY,vectorX,vectorY,rayX,rayY,rayActive){
+    this.username = username;
+    this.score = score;
+    this.speed = speed;
+    this.realSpeed = realSpeed;
+    this.posX = posX;
+    this.posY = posY;
+    this.vectorX = vectorX;
+    this.vectorY = vectorY;
+    this.rayX = rayX;
+    this.rayY = rayY;
+    this.rayActive = rayActive;   
+}
+function clampValue(value,lowerBound,upperBound){
+var returnValue = value;
+if(returnValue>upperBound){
+   returnValue = upperBound;
+   }
+else if(returnValue<lowerBound){
+    returnValue=lowerBound;
+}
+return returnValue;
+}
+function setUsername(){
+    var reqBody = {
+      type: "requestPlayer",
+        data:{username: document.getElementById("textInput").value}
+    };
+    socket.send(JSON.stringify(reqBody));
+}
+var lastMS = 0;
+function update(){
+draw.canvas.width  = clampValue(window.innerWidth,0,1920);
+draw.canvas.height = clampValue(window.innerWidth,0,1080);
+clear();
+centerX = window.innerWidth/2;
+centerY = window.innerHeight/2;
+document.getElementById("input").style.left=centerX;
+document.getElementById("input").style.top=centerY;
+    if(playerActive){
+   document.getElementById("textInput").style.display="none";
+   }
+    else{
+    document.getElementById("textInput").style.display="block";
+    }
+checkInput();
+drawCanvas();
+WeaponManager.tick();
+deltaTime=window.performance.now()-lastMS;
+lastMS=window.performance.now();
+setTimeout(function(){update();},delay);
+}
+var cachedPlayer;
+function reportTick(){
+    if(!compareObjects(cachedPlayer,Player)&&playerActive&&connectionActive){
+   cachedPlayer = Object.assign({},Player);
+    reportPlayer();
+   }
+    setTimeout(function(){reportTick();},reportDelay);
+}
+function checkInput(){
+if(playerActive){
+realSpeed = Player.speed*(deltaTime/1000)
+var vectorX = 0;
+var vectorY = 0;
+if(Key.isDown(Key.LEFT)){vectorX-=realSpeed;}
+if(Key.isDown(Key.RIGHT)){vectorX+=realSpeed;}
+if(Key.isDown(Key.UP)){vectorY-=realSpeed;}
+if(Key.isDown(Key.DOWN)){vectorY+=realSpeed;}
+var magnitude = Math.sqrt(Math.pow(vectorX,2)+Math.pow(vectorY,2));
+if(magnitude>0){
+var moveVectorX = (vectorX/magnitude)*realSpeed;
+var moveVectorY = (vectorY/magnitude)*realSpeed;
+var destination = rayCast(Player.posX+((vectorX/magnitude)*50),Player.posY+((vectorY/magnitude)*50),4*Player.posX+moveVectorX+((vectorX/magnitude)*50),4*Player.posY+moveVectorY+((vectorY/magnitude)*50));
+draw.beginPath();
+draw.moveTo(centerX,centerY);
+draw.lineTo(centerX+moveVectorX+(vectorX/magnitude)*50,centerY+moveVectorY+(vectorY/magnitude)*50);
+draw.stroke();
+if(destination!=false){
+Player.posX = destination.x-(vectorX/magnitude)*50;
+Player.posY = destination.y-(vectorY/magnitude)*50;
+}
+else{
+    Player.posX+=moveVectorX;
+    Player.posY+=moveVectorY;
+}
+   }
+}
+}
+function reportPlayer(){
+    var message = {
+    type:"reportPlayer",
+    data:Object.assign({},Player)
+    };
+    socket.send(JSON.stringify(message));
+}
+    
+function drawCanvas(){
+    if(playerActive){
+        drawGrid(100,100);
+        drawRay(40);
+        drawPlayer();
+        for(var i = 0;i<SpawnedObjects.length;i++){
+            SpawnedObjects[i].draw();
+        }
+       }
+}
+function clear(){
+draw.clearRect(0, 0, canvas.width, canvas.height)
+}
+function compareObjects(obj1,obj2){
+    return JSON.stringify(obj1)===JSON.stringify(obj2);
+}
+</script>
