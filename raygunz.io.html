@@ -9,12 +9,14 @@ html, body {
     overflow: hidden; 
 } 
 </style>
-<div id = "screen" class="stop-scrolling">
-<canvas id="canvas" width= 0 height=0></canvas>
-<div id = "input" style="position: absolute">
+<div id="screen" class = "stop-scrolling">
+<div id="canvasDiv" style="position: absolute" class = "stop-scrolling">
+<canvas id="canvas" width="1920" height="1080"></canvas>
+</div>
+<div style="position: absolute; z-index: 1; left: 700; top: 50%" id="input" align="center">
 <form action="javascript:setUsername();">
-<input id="textInput" placeholder="Username" style="width: 333.12px; height: 43px; line-height: 38.7px; font-size: 38.7px; padding-left: 5px; padding-right: 5px;">
-<input type="submit" style="display: none" />
+<input id="textInput" placeholder="Username" style="width: 333; height: 43px; line-height: 38.7px; font-size: 38.7px; padding-left: 5px; padding-right: 5px; display: block; right: 1000px" maxlength="25">
+<input type="submit" style="display: none">
 </form>
 </div>
 </div>
@@ -39,6 +41,33 @@ else if(type=="setPlayer"){
     Player = data;
     playerActive = true;
 }
+else if(type=="updatePlayers"){
+    var players = data.players;
+    var activeIds = [];
+        for(var i = 0;i<players.length;i++){
+            var player = players[i];
+            updatePlayer(player);
+            activeIds.push(player.id);
+        }
+    for(var i = 0;i<Enemies.length;i++){
+        if(activeIds.findIndex(x=>x==Enemies[i].id)==-1){
+           Enemies.splice(i);
+            
+            break;
+           }
+        }
+    
+}
+}
+function updatePlayer(player){
+    
+    var playerIndex = Enemies.findIndex(x=>x.id==player.id);
+    if(playerIndex==-1){
+                    Enemies.push(player);
+       }
+    else{
+        Enemies[playerIndex] = player;
+    }
 }
 window.addEventListener('keyup', function(event) { Key.onKeyup(event); }, false);
 window.addEventListener('keydown', function(event) { Key.onKeydown(event); }, false);
@@ -66,8 +95,9 @@ var Key = {
   }
 };
 var delay = 7;
-var reportDelay = 35;
-var SpawnedObjects = [new SpawnedObject(200,200,[new Point(0,0),new Point(100,0),new Point(50,100),new Point(0,0)],"red","blue"),new SpawnedObject(100,0,[new Point(0,0),new Point(100,0),new Point(100,100),new Point(0,100),new Point(0,0)],"blue","red")];    
+var reportDelay = 20;
+var SpawnedObjects = [new SpawnedObject(200,200,[new Point(0,0),new Point(100,0),new Point(50,100),new Point(0,0)],"red","blue"),new SpawnedObject(100,0,[new Point(0,0),new Point(100,0),new Point(100,100),new Point(0,100),new Point(0,0)],"blue","red")];
+var Enemies = [];
 var draw = canvas.getContext("2d");
 var centerX = 0;
 var centerY = 0;
@@ -82,6 +112,7 @@ function setMousePos(x,y){
 }
 var Player = {
     username: "",
+    id: "",
     score: 0,
     speed: 0,
     posX: 0,
@@ -112,10 +143,6 @@ var WeaponManager= {
 };
 function rayTick(){
     Player.rayActive=mouseDown;
-    if(Player.rayActive){
-        Player.rayX = mouseX+Player.posX;
-        Player.rayY = mouseY+Player.posY;
-       }
 }
 function rayCast(rayX1,rayY1,rayX2,rayY2){
                 var intersections = [];
@@ -142,6 +169,10 @@ function drawRay(radius){
     var closestPoint = rayCast(Player.posX,Player.posY,Player.posX+mouseX,Player.posY+mouseY);
     if(closestPoint==false){
        closestPoint={x:Player.posX+mouseX,y:Player.posY+mouseY};
+       }
+                if(Player.rayActive){
+        Player.rayX = closestPoint.x;
+        Player.rayY = closestPoint.y;
        }
                     var ciradius = Math.sin(window.performance.now()/50);
         draw.beginPath();
@@ -198,6 +229,7 @@ function SpawnedObject(posX,posY,points,color,outlineColor){
         draw.closePath();
         draw.strokeStyle = outlineColor;
         draw.fillStyle = color;
+        draw.lineWidth = 10;
         draw.stroke();
         draw.fill();
     }
@@ -282,8 +314,9 @@ function drawGrid(cellWidth,cellHeight){
 }
 update();
 reportTick();
-function Enemy(username,score,speed,realSpeed,posX,posY,vectorX,vectorY,rayX,rayY,rayActive){
+function Enemy(username,id,score,speed,realSpeed,posX,posY,vectorX,vectorY,rayX,rayY,rayActive){
     this.username = username;
+    this.id=id;
     this.score = score;
     this.speed = speed;
     this.realSpeed = realSpeed;
@@ -319,8 +352,6 @@ draw.canvas.height = clampValue(window.innerWidth,0,1080);
 clear();
 centerX = window.innerWidth/2;
 centerY = window.innerHeight/2;
-document.getElementById("input").style.left=centerX;
-document.getElementById("input").style.top=centerY;
     if(playerActive){
    document.getElementById("textInput").style.display="none";
    }
@@ -384,10 +415,33 @@ function drawCanvas(){
         drawGrid(100,100);
         drawRay(40);
         drawPlayer();
+        drawEnemies();
         for(var i = 0;i<SpawnedObjects.length;i++){
             SpawnedObjects[i].draw();
         }
+        
        }
+}
+function drawEnemies(){
+    for(var i = 0;i<Enemies.length;i++){
+var Enemy = Enemies[i];
+var canvasX = Enemy.posX+centerX-Player.posX;
+var canvasY = Enemy.posY+centerY-Player.posY;
+var rayCanvasX = Enemy.rayX+centerX-Player.posX;
+var rayCanvasY = Enemy.rayY+centerY-Player.posY;
+if(Enemy.rayActive){
+draw.beginPath();
+draw.moveTo(canvasX,canvasY);
+draw.lineTo(rayCanvasX,rayCanvasY);
+draw.lineWidth=40;
+draw.strokeStyle = "purple";
+draw.stroke();
+}
+draw.beginPath();
+draw.arc(canvasX, canvasY, 60, 0, 2 * Math.PI);
+draw.fillStyle = "red";
+draw.fill(); 
+    }
 }
 function clear(){
 draw.clearRect(0, 0, canvas.width, canvas.height)

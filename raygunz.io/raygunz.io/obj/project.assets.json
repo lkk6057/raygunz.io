@@ -760,11 +760,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\lkk60\\source\\repos\\raygunz.io\\raygunz.io\\raygunz.io.csproj",
+      "projectUniqueName": "C:\\Users\\lkk60\\Documents\\GitHub\\raygunz.io\\raygunz.io\\raygunz.io\\raygunz.io.csproj",
       "projectName": "raygunz.io",
-      "projectPath": "C:\\Users\\lkk60\\source\\repos\\raygunz.io\\raygunz.io\\raygunz.io.csproj",
+      "projectPath": "C:\\Users\\lkk60\\Documents\\GitHub\\raygunz.io\\raygunz.io\\raygunz.io\\raygunz.io.csproj",
       "packagesPath": "C:\\Users\\lkk60\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\lkk60\\source\\repos\\raygunz.io\\raygunz.io\\obj\\",
+      "outputPath": "C:\\Users\\lkk60\\Documents\\GitHub\\raygunz.io\\raygunz.io\\raygunz.io\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"

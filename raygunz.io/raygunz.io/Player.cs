@@ -13,11 +13,12 @@ namespace raygunz.io
         public Vector2 position;
         public Vector2 ray;
         public bool rayActive;
-        public Player(string username,string id, int score, Vector2 position, Vector2 ray,bool rayActive)
+        public Player(string username,string id, int score,float speed, Vector2 position, Vector2 ray,bool rayActive)
         {
             this.username = username;
             this.id = id;
             this.score = score;
+            this.speed = speed;
             this.position = position;
             this.ray = ray;
             this.rayActive = rayActive;
