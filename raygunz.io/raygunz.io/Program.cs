@@ -66,13 +66,16 @@ namespace raygunz.io
                     connection.Send(message);
             }
         }
-        JObject createPlayerJObject(string username,string id, int score, float speed, float posX, float posY, float rayX, float rayY, bool rayActive)
+        JObject createPlayerJObject(string username,string id, int score,float health,float maxHealth, float speed,float realSpeed, float posX, float posY, float rayX, float rayY, bool rayActive)
         {
             JObject newPlayer = new JObject();
             newPlayer.Add("username", username);
             newPlayer.Add("id",id);
             newPlayer.Add("score", score);
+            newPlayer.Add("health", health);
+            newPlayer.Add("maxHealth", maxHealth);
             newPlayer.Add("speed", speed);
+            newPlayer.Add("realSpeed", realSpeed);
             newPlayer.Add("posX", posX);
             newPlayer.Add("posY", posY);
             newPlayer.Add("rayX", rayX);
@@ -92,11 +95,14 @@ namespace raygunz.io
             string username = player.GetValue("username").ToString();
             string id = playerId;
             int score = int.Parse(player.GetValue("score").ToString());
+            float health = float.Parse(player.GetValue("health").ToString());
+            float maxHealth = float.Parse(player.GetValue("maxHealth").ToString());
             float speed = float.Parse(player.GetValue("speed").ToString());
+            float realSpeed = float.Parse(player.GetValue("realSpeed").ToString());
             Vector2 position = new Vector2(float.Parse(player.GetValue("posX").ToString()), float.Parse(player.GetValue("posY").ToString()));
             Vector2 ray = new Vector2(float.Parse(player.GetValue("rayX").ToString()), float.Parse(player.GetValue("rayY").ToString()));
             bool rayActive = bool.Parse(player.GetValue("rayActive").ToString());
-            Player newPlayer = new Player(username,id,score,speed,position,ray,rayActive);
+            Player newPlayer = new Player(username,id,score,health,maxHealth,speed,realSpeed,position,ray,rayActive);
             return newPlayer;
         }
         int updatePlayersDelay = 20;
@@ -104,6 +110,7 @@ namespace raygunz.io
         {
             try
             {
+                checkRayCollisions();
                 foreach (IWebSocketConnection connection in connections)
                 {
                     IWebSocketConnectionInfo info = connection.ConnectionInfo;
@@ -112,7 +119,7 @@ namespace raygunz.io
                     {
                         if (player.id != info.Id.ToString())
                         {
-                            JObject playerObject = createPlayerJObject(player.username,player.id, player.score, player.speed, player.position.x, player.position.y, player.ray.x, player.ray.y, player.rayActive);
+                            JObject playerObject = createPlayerJObject(player.username,player.id, player.score,player.health,player.maxHealth, player.speed,player.realSpeed, player.position.x, player.position.y, player.ray.x, player.ray.y, player.rayActive);
                             playerArray.Add(playerObject);
                         }
                     }
@@ -142,6 +149,9 @@ namespace raygunz.io
                 if (type=="reportPlayer")
                 {
                     Player player = JSONToPlayer(data,info.Id.ToString());
+                    Player realPlayer = dataManager.getPlayerById(info.Id.ToString());
+                    player.health = realPlayer.health;
+                    player.maxHealth = realPlayer.maxHealth;
                     dataManager.updatePlayerById(info.Id.ToString(),player);
                 }
                 else if (type=="requestPlayer")
@@ -150,10 +160,11 @@ namespace raygunz.io
                     if (username.Length<=25) {
                         Point spawnPoint = getSpawnPoint();
                         float speed = 1500;
-                        JObject newPlayer = createPlayerJObject(username,info.Id.ToString(), 0, speed, spawnPoint.x, spawnPoint.y, spawnPoint.x, spawnPoint.y, false);
+                        JObject newPlayer = createPlayerJObject(username,info.Id.ToString(), 0,100,100, speed,10, spawnPoint.x, spawnPoint.y, spawnPoint.x, spawnPoint.y, false);
+                        newPlayer.Add("reportDelay",updatePlayersDelay);
                         JObject messageObj = messageObject("setPlayer", newPlayer);
                         Vector2 spawnVector2 = new Vector2(spawnPoint.x, spawnPoint.y);
-                        dataManager.addPlayer(new Player(username, info.Id.ToString(), 0, speed, spawnVector2, spawnVector2, false));
+                        dataManager.addPlayer(new Player(username, info.Id.ToString(), 0,100,100, speed,10, spawnVector2, spawnVector2, false));
                         socket.Send(messageObj.ToString());
                     }
                 }
@@ -163,6 +174,12 @@ namespace raygunz.io
                 Console.WriteLine(ex.ToString());
             }
         }
+        void killPlayer(string id)
+        {
+            dataManager.removePlayerById(id);
+            JObject messageObj = messageObject("killPlayer",null);
+            getConnectionById(id).Send(messageObj.ToString());
+        }
         JObject messageObject(string type, JObject data)
         {
             JObject messageObj = new JObject();
@@ -170,9 +187,48 @@ namespace raygunz.io
             messageObj.Add("data",data);
             return messageObj;
         }
+        float PlayerRadius = 50;
+        void checkRayCollisions()
+        {
+            foreach (Player player in dataManager.getPlayers())
+            {
+                foreach (Player rayPlayer in dataManager.getPlayers())
+                {
+                    if (player.id!=rayPlayer.id)
+                    {
+                        float dist = distance(player.position.x-rayPlayer.ray.x, player.position.y - rayPlayer.ray.y);
+                        if (dist<PlayerRadius)
+                        {
+                            player.health = clampF(player.health-3,0,player.maxHealth);
+                            if (player.health<=0)
+                            {
+                                killPlayer(player.id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        float distance(float distX, float distY)
+        {
+            return MathF.Sqrt(MathF.Pow(distX,2)+MathF.Pow(distY, 2));
+        }
         Point getSpawnPoint()
         {
             return new Point() {x=random.Next(4000)-2000, y = random.Next(2800) - 1400 };
+        }
+        float clampF(float value, float lowerBound, float upperBound)
+        {
+            float returnValue = value;
+            if (returnValue<lowerBound)
+            {
+                returnValue = lowerBound;
+            }
+            if (returnValue > upperBound)
+            {
+                returnValue = upperBound;
+            }
+            return returnValue;
         }
     }
 }

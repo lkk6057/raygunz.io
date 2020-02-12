@@ -23,7 +23,10 @@ namespace raygunz.io
         {
             Player player = getPlayerById(id);
             player.username = newPlayer.username;
+            player.health = newPlayer.health;
+            player.maxHealth = newPlayer.maxHealth;
             player.speed = newPlayer.speed;
+            player.realSpeed = newPlayer.realSpeed;
             player.position = newPlayer.position;
             player.ray = newPlayer.ray;
             player.rayActive = newPlayer.rayActive;

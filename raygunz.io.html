@@ -58,16 +58,55 @@ else if(type=="updatePlayers"){
         }
     
 }
+else if(type=="killPlayer"){
+playerActive = false;
+}
 }
 function updatePlayer(player){
     
     var playerIndex = Enemies.findIndex(x=>x.id==player.id);
     if(playerIndex==-1){
-                    Enemies.push(player);
+        var playerObj = player;
+        playerObj["vectorX"] = 0;
+        playerObj["vectorY"] = 0;
+        playerObj["lastX"] = 0;
+        playerObj["lastY"] = 0;
+        playerObj["trueRayX"] = 0;
+        playerObj["trueRayY"] = 0;
+        playerObj["lerpRayX"] = 0;
+        playerObj["lerpRayY"] = 0;
+        playerObj["lerp"] = 0;
+                    Enemies.push(playerObj);
        }
     else{
-        Enemies[playerIndex] = player;
+        /*if(getDistance(Enemies[playerIndex].posX-player.posX,Enemies[playerIndex].posX-player.posX)>20){
+        Enemies[playerIndex].posX=player.posX;
+        Enemies[playerIndex].posY=player.posY;
+           }*/
+        Enemies[playerIndex].posX=player.posX;
+        Enemies[playerIndex].posY=player.posY;
+        Enemies[playerIndex].score = player.score;
+        Enemies[playerIndex].speed = player.speed;
+        Enemies[playerIndex].realSpeed=player.realSpeed;
+        var vectorX = player.posX-Enemies[playerIndex].lastX;
+        var vectorY = player.posY-Enemies[playerIndex].lastY;
+        var magnitude = Math.sqrt(Math.pow(vectorX,2)+Math.pow(vectorY,2));
+        if(vectorX!=0){vectorX = vectorX/magnitude;}
+        if(vectorY!=0){vectorY = vectorY/magnitude;}
+        Enemies[playerIndex].lastX = player.posX;
+        Enemies[playerIndex].lastY = player.posY;
+        Enemies[playerIndex].trueRayX = player.rayX;
+        Enemies[playerIndex].trueRayY = player.rayY;
+        Enemies[playerIndex].lerpRayX = Enemies[playerIndex].rayX;
+        Enemies[playerIndex].lerpRayY = Enemies[playerIndex].rayY;
+        Enemies[playerIndex].lerp=0;
+        Enemies[playerIndex].rayActive = player.rayActive;
+        Enemies[playerIndex]["vectorX"] = vectorX;
+        Enemies[playerIndex]["vectorY"] = vectorY;
     }
+}
+function getDistance(distX,distY){
+    return Math.sqrt(Math.pow(distX,2)+Math.pow(distY, 2));
 }
 window.addEventListener('keyup', function(event) { Key.onKeyup(event); }, false);
 window.addEventListener('keydown', function(event) { Key.onKeydown(event); }, false);
@@ -95,7 +134,6 @@ var Key = {
   }
 };
 var delay = 7;
-var reportDelay = 20;
 var SpawnedObjects = [new SpawnedObject(200,200,[new Point(0,0),new Point(100,0),new Point(50,100),new Point(0,0)],"red","blue"),new SpawnedObject(100,0,[new Point(0,0),new Point(100,0),new Point(100,100),new Point(0,100),new Point(0,0)],"blue","red")];
 var Enemies = [];
 var draw = canvas.getContext("2d");
@@ -106,6 +144,10 @@ var mouseDown = false;
 var mouseX = 0;
 var mouseY = 0;
 var deltaTime = 0;
+var BOUNDUP = -2000;
+var BOUNDRIGHT = 2000;
+var BOUNDDOWN = 2000;
+var BOUNDLEFT = -2000;
 function setMousePos(x,y){
     mouseX = x-centerX;
     mouseY = y-centerY;
@@ -114,7 +156,10 @@ var Player = {
     username: "",
     id: "",
     score: 0,
+    health: 0,
+    maxHealth:0,
     speed: 0,
+    realSpeed: 0,
     posX: 0,
     posY: 0,
     rayX: 0,
@@ -309,6 +354,7 @@ function drawGrid(cellWidth,cellHeight){
         draw.moveTo(0,YPos);
         draw.lineTo(window.innerWidth,YPos);
         draw.stroke();
+    
     }
     
 }
@@ -359,6 +405,8 @@ centerY = window.innerHeight/2;
     document.getElementById("textInput").style.display="block";
     }
 checkInput();
+stepEnemies();
+interpolateRays();
 drawCanvas();
 WeaponManager.tick();
 deltaTime=window.performance.now()-lastMS;
@@ -371,7 +419,7 @@ function reportTick(){
    cachedPlayer = Object.assign({},Player);
     reportPlayer();
    }
-    setTimeout(function(){reportTick();},reportDelay);
+    setTimeout(function(){reportTick();},Player.reportDelay);
 }
 function checkInput(){
 if(playerActive){
@@ -396,13 +444,14 @@ Player.posX = destination.x-(vectorX/magnitude)*50;
 Player.posY = destination.y-(vectorY/magnitude)*50;
 }
 else{
-    Player.posX+=moveVectorX;
-    Player.posY+=moveVectorY;
+    Player.posX= clampValue(Player.posX+moveVectorX,BOUNDLEFT,BOUNDRIGHT);
+    Player.posY=clampValue(Player.posY+moveVectorY,BOUNDUP,BOUNDDOWN);
 }
    }
 }
 }
 function reportPlayer(){
+    Player.realSpeed = realSpeed;
     var message = {
     type:"reportPlayer",
     data:Object.assign({},Player)
@@ -422,6 +471,21 @@ function drawCanvas(){
         
        }
 }
+function stepEnemies(){
+    for(var i = 0;i<Enemies.length;i++){
+    Enemies[i].posX+=Enemies[i].vectorX*Enemies[i].realSpeed;
+    Enemies[i].posY+=Enemies[i].vectorY*Enemies[i].realSpeed;
+    }
+}
+function interpolateRays(){
+    for(var i = 0;i<Enemies.length;i++){
+        Enemies[i].lerp=clampValue(Enemies[i].lerp+(deltaTime/1000)*50,0,1);
+        var distX = Enemies[i].trueRayX-Enemies[i].lerpRayX;
+        var distY = Enemies[i].trueRayY-Enemies[i].lerpRayY;
+        Enemies[i].rayX = Enemies[i].lerpRayX+(distX*Enemies[i].lerp);
+        Enemies[i].rayY = Enemies[i].lerpRayY+(distY*Enemies[i].lerp);
+    }
+}
 function drawEnemies(){
     for(var i = 0;i<Enemies.length;i++){
 var Enemy = Enemies[i];
@@ -429,18 +493,37 @@ var canvasX = Enemy.posX+centerX-Player.posX;
 var canvasY = Enemy.posY+centerY-Player.posY;
 var rayCanvasX = Enemy.rayX+centerX-Player.posX;
 var rayCanvasY = Enemy.rayY+centerY-Player.posY;
+var radius = 40;
 if(Enemy.rayActive){
+    
+draw.strokeStyle="red";
+draw.fillStyle="red";
+draw.lineWidth=radius;
 draw.beginPath();
 draw.moveTo(canvasX,canvasY);
 draw.lineTo(rayCanvasX,rayCanvasY);
-draw.lineWidth=40;
-draw.strokeStyle = "purple";
 draw.stroke();
+draw.beginPath();
+draw.arc(rayCanvasX, rayCanvasY, radius/2, 0, 2 * Math.PI);
+draw.fill();
+draw.strokeStyle="white";
+draw.fillStyle="white";
+draw.lineWidth=radius/3;
+draw.beginPath();
+draw.moveTo(canvasX,canvasY);
+draw.lineTo(rayCanvasX,rayCanvasY);
+draw.stroke();
+draw.beginPath();
+draw.arc(rayCanvasX, rayCanvasY, radius/6, 0, 2 * Math.PI);
+draw.fill();
 }
 draw.beginPath();
-draw.arc(canvasX, canvasY, 60, 0, 2 * Math.PI);
-draw.fillStyle = "red";
-draw.fill(); 
+draw.arc(canvasX, canvasY, 55, 0, 2 * Math.PI);
+draw.strokeStyle="IndianRed";
+draw.lineWidth=10;
+draw.stroke();
+draw.fillStyle = "LightCoral";
+draw.fill();
     }
 }
 function clear(){
