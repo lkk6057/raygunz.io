@@ -12,11 +12,12 @@ namespace raygunz.io
         public float health;
         public float maxHealth;
         public float speed;
+        public float size;
         public float realSpeed;
         public Vector2 position;
         public Vector2 ray;
         public bool rayActive;
-        public Player(string username,string id, int score,float health, float maxHealth,float speed,float realSpeed, Vector2 position, Vector2 ray,bool rayActive)
+        public Player(string username,string id, int score,float health, float maxHealth,float speed,float size,float realSpeed, Vector2 position, Vector2 ray,bool rayActive)
         {
             this.username = username;
             this.id = id;
@@ -24,6 +25,7 @@ namespace raygunz.io
             this.health = health;
             this.maxHealth = maxHealth;
             this.speed = speed;
+            this.size = size;
             this.realSpeed = realSpeed;
             this.position = position;
             this.ray = ray;

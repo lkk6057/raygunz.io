@@ -26,6 +26,7 @@ namespace raygunz.io
             player.health = newPlayer.health;
             player.maxHealth = newPlayer.maxHealth;
             player.speed = newPlayer.speed;
+            player.size = newPlayer.size;
             player.realSpeed = newPlayer.realSpeed;
             player.position = newPlayer.position;
             player.ray = newPlayer.ray;

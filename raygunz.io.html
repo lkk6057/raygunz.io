@@ -13,11 +13,12 @@ html, body {
 <div id="canvasDiv" style="position: absolute" class = "stop-scrolling">
 <canvas id="canvas" width="1920" height="1080"></canvas>
 </div>
-<div style="position: absolute; z-index: 1; left: 700; top: 50%" id="input" align="center">
+<div style="position: absolute; z-index: 1; left: 700; top: 50%" id="start" align="center">
 <form action="javascript:setUsername();">
-<input id="textInput" placeholder="Username" style="width: 333; height: 43px; line-height: 38.7px; font-size: 38.7px; padding-left: 5px; padding-right: 5px; display: block; right: 1000px" maxlength="25">
+<input id="textInput" placeholder="Choose Username" style="width: 350; height: 43px; line-height: 38.7px; font-size: 38.7px; padding-left: 5px; padding-right: 5px; display: block; right: 1000px" maxlength="15">
 <input type="submit" style="display: none">
 </form>
+<p id = "status"></p>
 </div>
 </div>
 <script>
@@ -56,10 +57,23 @@ else if(type=="updatePlayers"){
             break;
            }
         }
-    
+    updateLeaderboard();
 }
 else if(type=="killPlayer"){
 playerActive = false;
+}
+else if(type=="updateHealth"){
+Player.health = data.health;
+Player.maxHealth = data.maxHealth;
+}
+    else if(type=="updateScore"){
+Player.score = data.score;
+}
+    else if(type=="updateSize"){
+Player.size = data.size;
+}
+    else if(type=="updateSpeed"){
+Player.speed = data.speed;
 }
 }
 function updatePlayer(player){
@@ -87,6 +101,9 @@ function updatePlayer(player){
         Enemies[playerIndex].posY=player.posY;
         Enemies[playerIndex].score = player.score;
         Enemies[playerIndex].speed = player.speed;
+        Enemies[playerIndex].size = player.size;
+        Enemies[playerIndex].health = player.health;
+        Enemies[playerIndex].maxHealth = player.maxHealth;
         Enemies[playerIndex].realSpeed=player.realSpeed;
         var vectorX = player.posX-Enemies[playerIndex].lastX;
         var vectorY = player.posY-Enemies[playerIndex].lastY;
@@ -159,6 +176,7 @@ var Player = {
     health: 0,
     maxHealth:0,
     speed: 0,
+    size: 0,
     realSpeed: 0,
     posX: 0,
     posY: 0,
@@ -168,8 +186,27 @@ var Player = {
 };
 var realSpeed;
 function drawPlayer(){
+var barrelLength = 120*(Player.size/50);
+var vectorX = mouseX;
+var vectorY = mouseY;
+var magnitude = getDistance(vectorX,vectorY);
+if(vectorX!=0){
+   vectorX = vectorX/magnitude;
+   }
+    if(vectorY!=0){
+   vectorY = vectorY/magnitude;
+   }
+vectorX = vectorX*barrelLength;
+vectorY = vectorY*barrelLength;
 draw.beginPath();
-draw.arc(centerX, centerY, 50, 0, 2 * Math.PI);
+draw.moveTo(centerX,centerY);
+draw.lineTo(vectorX+centerX,vectorY+centerY);
+draw.strokeStyle = "#8C8C8C";
+draw.lineWidth = 50*(Player.size/50);
+draw.stroke();
+
+draw.beginPath();
+draw.arc(centerX, centerY, Player.size, 0, 2 * Math.PI);
 draw.strokeStyle = "#00cc00";
 draw.lineWidth = 10;
 draw.stroke();
@@ -208,17 +245,15 @@ if(intersectionPoint!=false){
         }
     return closestPoint;
 }
-function drawRay(radius){
-    
-        if(Player.rayActive){
+function drawRay(rad){
+    var radius = rad*(Player.size/50)
     var closestPoint = rayCast(Player.posX,Player.posY,Player.posX+mouseX,Player.posY+mouseY);
     if(closestPoint==false){
        closestPoint={x:Player.posX+mouseX,y:Player.posY+mouseY};
        }
-                if(Player.rayActive){
         Player.rayX = closestPoint.x;
         Player.rayY = closestPoint.y;
-       }
+    if(Player.rayActive){
                     var ciradius = Math.sin(window.performance.now()/50);
         draw.beginPath();
 draw.arc(closestPoint.x+centerX-Player.posX, closestPoint.y+centerY-Player.posY, 45+ciradius*5, 0, 2 * Math.PI);
@@ -251,6 +286,23 @@ draw.fill();
     function Point(x,y){
     this.x=x;
     this.y=y;
+}
+var damageDelay = 20;
+function checkRayCollisions(){
+    if(Player.rayActive){
+    for(var i = 0;i<Enemies.length;i++){
+        var Enemy = Enemies[0];
+        if(getDistance(Player.rayX-Enemy.posX,Player.rayY-Enemy.posY)<Enemy.size){
+           var reqBody = {
+      type: "damagePlayer",
+        data:{recipientId: Enemy.id}
+    };
+    socket.send(JSON.stringify(reqBody));
+    console.log(JSON.stringify(reqBody));
+           }
+    }
+}
+    setTimeout(function(){checkRayCollisions();},damageDelay);
 }
 function SpawnedObject(posX,posY,points,color,outlineColor){
     this.posX = posX;
@@ -359,6 +411,7 @@ function drawGrid(cellWidth,cellHeight){
     
 }
 update();
+checkRayCollisions();
 reportTick();
 function Enemy(username,id,score,speed,realSpeed,posX,posY,vectorX,vectorY,rayX,rayY,rayActive){
     this.username = username;
@@ -392,6 +445,7 @@ function setUsername(){
     socket.send(JSON.stringify(reqBody));
 }
 var lastMS = 0;
+var timeout = 5000;
 function update(){
 draw.canvas.width  = clampValue(window.innerWidth,0,1920);
 draw.canvas.height = clampValue(window.innerWidth,0,1080);
@@ -399,11 +453,26 @@ clear();
 centerX = window.innerWidth/2;
 centerY = window.innerHeight/2;
     if(playerActive){
-   document.getElementById("textInput").style.display="none";
+   document.getElementById("start").style.display="none";
    }
     else{
-    document.getElementById("textInput").style.display="block";
+    document.getElementById("start").style.display="block";
     }
+        switch(socket.readyState){
+        case 0:
+        document.getElementById("status").innerHTML = "Connecting to server..";
+        break;
+        case 1:
+        document.getElementById("status").innerHTML = "<span style='color: green;'>Connected</span>";
+        break;
+        case 2:
+        document.getElementById("status").innerHTML = "<span style='color: red;'>Cannot connect to server. Try refreshing the page.</span>";
+        break;
+        case 3:
+        document.getElementById("status").innerHTML = "<span style='color: red;'>Not connected to server. Try refreshing the page.</span>";
+        break; 
+
+           }
 checkInput();
 stepEnemies();
 interpolateRays();
@@ -468,7 +537,9 @@ function drawCanvas(){
         for(var i = 0;i<SpawnedObjects.length;i++){
             SpawnedObjects[i].draw();
         }
-        
+        drawEnemyHUD();
+        drawPlayerHUD();
+        drawLeaderboard();
        }
 }
 function stepEnemies(){
@@ -484,6 +555,62 @@ function interpolateRays(){
         var distY = Enemies[i].trueRayY-Enemies[i].lerpRayY;
         Enemies[i].rayX = Enemies[i].lerpRayX+(distX*Enemies[i].lerp);
         Enemies[i].rayY = Enemies[i].lerpRayY+(distY*Enemies[i].lerp);
+    }
+}
+function drawEnemyHUD(){
+for(var i = 0;i<Enemies.length;i++){  
+var Enemy = Enemies[i];
+var width = 150*(Enemy.maxHealth/100);
+var height = 120;  
+draw.fillStyle = "#00FF00";
+draw.fillRect(Enemy.posX-Player.posX+(centerX-(width/2)),Enemy.posY-Player.posY+(centerY-(height/2))-(height/5),width*(Enemy.health/Enemy.maxHealth),10);
+draw.fillStyle = "#FF0000";
+draw.fillRect(Enemy.posX-Player.posX+(centerX-(width/2))+width*(Enemy.health/Enemy.maxHealth),Enemy.posY-Player.posY+(centerY-(height/2))-(height/5),width*((Enemy.maxHealth-Enemy.health)/Enemy.maxHealth),10);
+draw.font = "30px Arial";
+draw.textAlign = "center";
+draw.fillStyle = "rgba(0, 0, 0, 1)";
+draw.fillText(Enemy.username,centerX-Player.posX+Enemy.posX,centerY-Player.posY+Enemy.posY-height);
+}
+}
+function drawPlayerHUD(){
+var width = 150*(Player.maxHealth/100);
+var height = 120;
+draw.fillStyle = "#00FF00";
+draw.fillRect((centerX-(width/2)),(centerY-(height/2))-(height/5),width*(Player.health/Player.maxHealth),10);
+draw.fillStyle = "#FF0000";
+draw.fillRect((centerX-(width/2))+width*(Player.health/Player.maxHealth),(centerY-(height/2))-(height/5),width*((Player.maxHealth-Player.health)/Player.maxHealth),10);
+}
+var leaderboard = [];
+function updateLeaderboard(){
+var playerScores = [];
+for(var i = 0;i<Enemies.length;i++){
+    var Enemy = Enemies[i];
+    playerScores.push({username:Enemy.username,score:Enemy.score});
+}
+playerScores.push({username:Player.username,score:Player.score});
+playerScores.sort((a, b) => (a.score < b.score) ? 1 : -1);
+leaderboard = playerScores;
+}
+function drawLeaderboard(){
+    var top = 30;
+var right = 200;
+var truncateMark = 5;
+var leaderboardString = "";
+for(var i = 0;i<leaderboard.length;i++){
+    if(i<truncateMark){
+       leaderboardString+=(i+1)+". "+leaderboard[i].username+": "+leaderboard[i].score+"\n";
+       }
+    else{
+        break;
+    }
+}
+    var lines = leaderboardString.split('\n');
+    var lineHeight = 15;
+    draw.font = "15px Arial";
+draw.textAlign = "left";
+draw.fillStyle = "rgba(0, 0, 0, 1)";
+    for(var i = 0;i<lines.length;i++){
+    draw.fillText(lines[i],window.innerWidth-right,top+(lineHeight*i));
     }
 }
 function drawEnemies(){
@@ -517,8 +644,28 @@ draw.beginPath();
 draw.arc(rayCanvasX, rayCanvasY, radius/6, 0, 2 * Math.PI);
 draw.fill();
 }
+
+var barrelLength = 120*(Enemy.size/50);
+var vectorX = Enemy.rayX-Enemy.posX;
+var vectorY = Enemy.rayY-Enemy.posY;
+var magnitude = getDistance(vectorX,vectorY);
+if(vectorX!=0){
+   vectorX = vectorX/magnitude;
+   }
+    if(vectorY!=0){
+   vectorY = vectorY/magnitude;
+   }
+vectorX = vectorX*barrelLength;
+vectorY = vectorY*barrelLength;
 draw.beginPath();
-draw.arc(canvasX, canvasY, 55, 0, 2 * Math.PI);
+draw.moveTo(centerX+Enemy.posX-Player.posX,centerY+Enemy.posY-Player.posY);
+draw.lineTo(vectorX+centerX+Enemy.posX-Player.posX,vectorY+centerY+Enemy.posY-Player.posY);
+draw.strokeStyle = "#8C8C8C";
+draw.lineWidth = 50*(Enemy.size/50);
+draw.stroke();
+
+draw.beginPath();
+draw.arc(canvasX, canvasY, Enemy.size, 0, 2 * Math.PI);
 draw.strokeStyle="IndianRed";
 draw.lineWidth=10;
 draw.stroke();
