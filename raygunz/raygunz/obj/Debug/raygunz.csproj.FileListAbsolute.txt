@@ -1,0 +1,11 @@
+C:\Users\lkk60\source\repos\raygunz\raygunz\obj\Debug\raygunz.csprojAssemblyReference.cache
+C:\Users\lkk60\source\repos\raygunz\raygunz\obj\Debug\raygunz.csproj.CoreCompileInputs.cache
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\raygunz.exe.config
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\raygunz.exe
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\raygunz.pdb
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\Fleck.dll
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\Newtonsoft.Json.dll
+C:\Users\lkk60\source\repos\raygunz\raygunz\bin\Debug\Newtonsoft.Json.xml
+C:\Users\lkk60\source\repos\raygunz\raygunz\obj\Debug\raygunz.csproj.CopyComplete
+C:\Users\lkk60\source\repos\raygunz\raygunz\obj\Debug\raygunz.exe
+C:\Users\lkk60\source\repos\raygunz\raygunz\obj\Debug\raygunz.pdb

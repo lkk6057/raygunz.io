@@ -504,10 +504,6 @@ if(magnitude>0){
 var moveVectorX = (vectorX/magnitude)*realSpeed;
 var moveVectorY = (vectorY/magnitude)*realSpeed;
 var destination = rayCast(Player.posX+((vectorX/magnitude)*50),Player.posY+((vectorY/magnitude)*50),4*Player.posX+moveVectorX+((vectorX/magnitude)*50),4*Player.posY+moveVectorY+((vectorY/magnitude)*50));
-draw.beginPath();
-draw.moveTo(centerX,centerY);
-draw.lineTo(centerX+moveVectorX+(vectorX/magnitude)*50,centerY+moveVectorY+(vectorY/magnitude)*50);
-draw.stroke();
 if(destination!=false){
 Player.posX = destination.x-(vectorX/magnitude)*50;
 Player.posY = destination.y-(vectorY/magnitude)*50;
