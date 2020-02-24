@@ -1,0 +1,11 @@
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\raygunz.exe.config
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\raygunz.exe
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\raygunz.pdb
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\Fleck.dll
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\Newtonsoft.Json.dll
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\bin\Release\Newtonsoft.Json.xml
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\obj\Release\raygunz.csprojAssemblyReference.cache
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\obj\Release\raygunz.csproj.CoreCompileInputs.cache
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\obj\Release\raygunz.csproj.CopyComplete
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\obj\Release\raygunz.exe
+C:\Users\lkk60\Documents\GitHub\raygunz.io\raygunz\raygunz\obj\Release\raygunz.pdb

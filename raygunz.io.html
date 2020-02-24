@@ -22,7 +22,7 @@ html, body {
 </div>
 </div>
 <script>
-var socket = new WebSocket("ws://72.74.131.139:8181");
+var socket = new WebSocket("ws://3.19.188.74:8181");
 var connectionActive = false;
 // Connection opened
 socket.onopen = function(data){
@@ -291,14 +291,14 @@ var damageDelay = 20;
 function checkRayCollisions(){
     if(Player.rayActive){
     for(var i = 0;i<Enemies.length;i++){
-        var Enemy = Enemies[0];
-        if(getDistance(Player.rayX-Enemy.posX,Player.rayY-Enemy.posY)<Enemy.size){
+        var Enemy = Enemies[i];
+        var dist = getDistance(Player.rayX-Enemy.posX,Player.rayY-Enemy.posY);
+        if(dist<Enemy.size){
            var reqBody = {
       type: "damagePlayer",
         data:{recipientId: Enemy.id}
     };
     socket.send(JSON.stringify(reqBody));
-    console.log(JSON.stringify(reqBody));
            }
     }
 }
@@ -557,7 +557,7 @@ function drawEnemyHUD(){
 for(var i = 0;i<Enemies.length;i++){  
 var Enemy = Enemies[i];
 var width = 150*(Enemy.maxHealth/100);
-var height = 120;  
+var height = 70+Enemy.size;  
 draw.fillStyle = "#00FF00";
 draw.fillRect(Enemy.posX-Player.posX+(centerX-(width/2)),Enemy.posY-Player.posY+(centerY-(height/2))-(height/5),width*(Enemy.health/Enemy.maxHealth),10);
 draw.fillStyle = "#FF0000";
@@ -570,7 +570,7 @@ draw.fillText(Enemy.username,centerX-Player.posX+Enemy.posX,centerY-Player.posY+
 }
 function drawPlayerHUD(){
 var width = 150*(Player.maxHealth/100);
-var height = 120;
+var height = 70+Player.size;
 draw.fillStyle = "#00FF00";
 draw.fillRect((centerX-(width/2)),(centerY-(height/2))-(height/5),width*(Player.health/Player.maxHealth),10);
 draw.fillStyle = "#FF0000";
