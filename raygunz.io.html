@@ -533,10 +533,24 @@ function drawCanvas(){
         for(var i = 0;i<SpawnedObjects.length;i++){
             SpawnedObjects[i].draw();
         }
+        drawBounds();
         drawEnemyHUD();
         drawPlayerHUD();
         drawLeaderboard();
        }
+}
+function drawBounds(){
+var width=1500;
+var halfWidth =width/2+50;
+draw.strokeStyle = "rgba(52,222,235,0.5)";
+draw.lineWidth = width;
+draw.beginPath();
+draw.moveTo(BOUNDLEFT+centerX-Player.posX-halfWidth,BOUNDUP+centerY-Player.posY-halfWidth);
+draw.lineTo(BOUNDRIGHT+centerX-Player.posX+halfWidth,BOUNDUP+centerY-Player.posY-halfWidth);
+draw.lineTo(BOUNDRIGHT+centerX-Player.posX+halfWidth,BOUNDDOWN+centerY-Player.posY+halfWidth);
+draw.lineTo(BOUNDLEFT+centerX-Player.posX-halfWidth,BOUNDDOWN+centerY-Player.posY+halfWidth);
+draw.lineTo(BOUNDLEFT+centerX-Player.posX-halfWidth,BOUNDUP+centerY-Player.posY-halfWidth);
+draw.stroke();
 }
 function stepEnemies(){
     for(var i = 0;i<Enemies.length;i++){
